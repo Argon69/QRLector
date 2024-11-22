@@ -2,15 +2,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Scanner App</title>
+    <!-- Metadata -->
     <meta name="theme-color" content="#4F46E5">
-    <meta name="description" content="A modern QR code scanner web application">
+    <meta name="description" content="A modern QR code scanner web application. Scan QR codes quickly and efficiently.">
+    
+    <!-- Manifest and Icons -->
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="logi.js" defer></script>
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"
+        integrity="sha384-HRmPzXke9fKcikd41uO8QH6LFFlbgJBlEeVheoz14OIL+9yA9sd9g+m4bYpgxI1" crossorigin="anonymous">
+    
+    <!-- Scripts -->
+    <script src="https://unpkg.com/html5-qrcode" defer></script>
     <script src="app.js" defer></script>
-    <script src="sw.js" defer></script>
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                })
+                .catch(error => {
+                    console.error('Service Worker registration failed:', error);
+                });
+        }
+    </script>
     <style>
         :root {
             --primary: #4F46E5;
@@ -143,7 +160,6 @@
     </div>
 
     <script src="/app.js"></script>
-    <script src="/logi.js"></script>
     <script src="/sw.js"></script>
 
 
