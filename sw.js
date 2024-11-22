@@ -3,52 +3,32 @@ const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icons/qrcodescan_120401.png', // Mantén las rutas únicas
+  '/icons/qrcodescan_120401.png',
   'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css',
   'https://unpkg.com/html5-qrcode',
 ];
 
-// Instalar el trabajador de servicio y almacenar en caché archivos necesarios
+// Instalar el Service Worker y cachear recursos iniciales
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Instalando...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[Service Worker] Archivos cacheados');
       return cache.addAll(urlsToCache);
-    }).catch((error) => {
-      console.error('[Service Worker] Error al cachear archivos:', error);
-    })
+    }).catch((error) => console.error('[Service Worker] Error al cachear:', error))
   );
 });
 
-// Interceptar solicitudes y responder desde la caché o la red
-self.addEventListener('fetch', (event) => {
-  console.log('[Service Worker] Fetch request para:', event.request.url);
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
-        console.log('[Service Worker] Encontrado en caché:', event.request.url);
-        return response;
-      }
-      console.log('[Service Worker] No encontrado en caché, buscando en red:', event.request.url);
-      return fetch(event.request).catch((error) => {
-        console.error('[Service Worker] Error de red para:', event.request.url, error);
-        // Opcional: puedes devolver una página de error personalizada
-      });
-    })
-  );
-});
-
-// Activar el trabajador de servicio y limpiar cachés antiguas
+// Activar y limpiar cachés antiguas
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Activando y limpiando cachés antiguas...');
+  console.log('[Service Worker] Activando...');
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then((cacheNames) =>
       Promise.all(
         cacheNames.map((cacheName) => {
           if (!cacheWhitelist.includes(cacheName)) {
-            console.log('[Service Worker] Borrando caché antigua:', cacheName);
+            console.log('[Service Worker] Eliminando caché antigua:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -57,25 +37,55 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// ** Sincronización en Segundo Plano (Background Sync) **
+// Interceptar solicitudes
+self.addEventListener('fetch', (event) => {
+  console.log('[Service Worker] Interceptando fetch:', event.request.url);
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request).catch((error) => {
+        console.error('[Service Worker] Error de red:', error);
+        // Retornar una respuesta predeterminada si es necesario
+      });
+    })
+  );
+});
+
+// Sincronización de Fondo (Background Sync)
 self.addEventListener('sync', (event) => {
+  console.log('[Service Worker] Evento de sincronización:', event.tag);
   if (event.tag === 'sync-qr-scans') {
-    event.waitUntil(syncQRCodes()); // Define tu lógica aquí
+    event.waitUntil(syncPendingScans());
   }
 });
 
-async function syncQRCodes() {
-  console.log('[Service Worker] Sincronizando datos QR...');
-  // Implementa lógica para sincronizar datos QR
+// Función para manejar la sincronización de datos
+async function syncPendingScans() {
+  console.log('[Service Worker] Sincronizando datos QR pendientes...');
+  try {
+    const pendingScans = await getPendingScans(); // Obtener datos pendientes
+    for (const scan of pendingScans) {
+      await sendScanToServer(scan); // Enviar cada dato al servidor
+    }
+    console.log('[Service Worker] Datos sincronizados con éxito');
+  } catch (error) {
+    console.error('[Service Worker] Error al sincronizar datos:', error);
+  }
 }
 
-// ** Notificaciones Push **
-self.addEventListener('push', (event) => {
-  console.log('[Service Worker] Notificación push recibida');
-  const options = {
-    body: event.data ? event.data.text() : '¡Nueva notificación!',
-    icon: '/icons/qrcodescan_120401.png',
-    badge: '/icons/qrcodescan_120401.png',
-  };
-  event.waitUntil(self.registration.showNotification('QR Scanner App', options));
-});
+// Funciones auxiliares (deben implementarse según tu lógica)
+async function getPendingScans() {
+  // Lógica para recuperar datos pendientes desde IndexedDB u otro almacenamiento local
+  return []; // Ejemplo: devuelve una lista vacía
+}
+
+async function sendScanToServer(scan) {
+  // Lógica para enviar un dato al servidor mediante fetch o una API
+  console.log('[Service Worker] Enviando dato:', scan);
+  return fetch('/api/sync', {
+    method: 'POST',
+    body: JSON.stringify(scan),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
