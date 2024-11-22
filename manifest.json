@@ -1,0 +1,22 @@
+{
+    "name": "QR Scanner App by Nixon",
+    "short_name": "QR Scanner by Nixon",
+    "description": "A modern QR code scanner web application",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#F9FAFB",
+    "theme_color": "#4F46E5",
+    "icons": [
+      {
+        "src": "/icons/qrcodescan_120401.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      },
+      {
+        "src": "/icons/qrcodescan_120401.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ]
+  }
+  
