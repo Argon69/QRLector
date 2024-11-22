@@ -1,22 +1,52 @@
 {
-    "name": "QR Scanner App by Nixon",
-    "short_name": "QR Scanner by Nixon",
-    "description": "A modern QR code scanner web application",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#F9FAFB",
-    "theme_color": "#4F46E5",
-    "icons": [
-      {
-        "src": "/icons/qrcodescan_120401.png",
-        "sizes": "192x192",
-        "type": "image/png"
-      },
-      {
-        "src": "/icons/qrcodescan_120401.png",
-        "sizes": "512x512",
-        "type": "image/png"
-      }
-    ]
-  }
-  
+  "name": "QR Scanner App by Nixon",
+  "short_name": "QR Scanner",
+  "description": "A modern QR code scanner web application.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F9FAFB",
+  "theme_color": "#4F46E5",
+  "orientation": "portrait",
+  "categories": ["productivity", "utilities", "tools"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "id": "/?app=true",
+  "launch_handler": {
+    "client_mode": "navigate-new"
+  },
+  "icons": [
+    {
+      "src": "/icons/qrcodescan_120401.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/qrcodescan_120401.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/screenshot1.png",
+      "sizes": "1080x1920",
+      "type": "image/png"
+    },
+    {
+      "src": "/screenshots/screenshot2.png",
+      "sizes": "1080x1920",
+      "type": "image/png"
+    }
+  ],
+  "iarc_rating_id": "e10+",
+  "prefer_related_applications": false,
+  "scope": "/",
+  "scope_extensions": [
+    {
+      "origin": "https://example.com",
+      "path": "/api/v1/*"
+    }
+  ]
+}
