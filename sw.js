@@ -6,51 +6,31 @@ const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icons/qrcodescan_120401.png', // Mantén las rutas únicas
+  '/icons/qrcodescan_120401.png',
+  '/icons/qrcodescan_120401.png',
   'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css',
   'https://unpkg.com/html5-qrcode',
 ];
 
-// Instalar el trabajador de servicio y almacenar en caché archivos necesarios
+// Instalar el Service Worker y añadir los archivos a la caché
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Archivos cacheados');
-      return cache.addAll(urlsToCache);
-    }).catch((error) => {
-      console.error('[Service Worker] Error al cachear archivos:', error);
-    })
-  );
-});
-
-// Interceptar solicitudes y responder desde la caché o la red
-self.addEventListener('fetch', (event) => {
-  console.log('[Service Worker] Fetch request para:', event.request.url);
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
-        console.log('[Service Worker] Encontrado en caché:', event.request.url);
-        return response;
-      }
-      console.log('[Service Worker] No encontrado en caché, buscando en red:', event.request.url);
-      return fetch(event.request).catch((error) => {
-        console.error('[Service Worker] Error de red para:', event.request.url, error);
-        // Opcional: puedes devolver una página de error personalizada
+    caches.open(CACHE).then((cache) => {
+      return cache.addAll(urlsToCache).then(() => {
+        return cache.add(OFFLINE_PAGE); // Añadir la página offline a la caché
       });
     })
   );
 });
 
-// Activar el trabajador de servicio y limpiar cachés antiguas
+// Activar el Service Worker y gestionar la actualización de la caché
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Activando y limpiando cachés antiguas...');
-  const cacheWhitelist = [CACHE_NAME];
+  const cacheWhitelist = [CACHE];
   event.waitUntil(
     caches.keys().then((cacheNames) =>
       Promise.all(
         cacheNames.map((cacheName) => {
           if (!cacheWhitelist.includes(cacheName)) {
-            console.log('[Service Worker] Borrando caché antigua:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -59,25 +39,49 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// ** Sincronización en Segundo Plano (Background Sync) **
+// Fetch: Manejo de la red y la caché, fallback a la página offline si no hay conexión
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      // Si la solicitud está en caché, la devuelve
+      if (response) {
+        return response;
+      }
+      
+      // Si la solicitud no está en caché, intentar obtenerla de la red
+      return fetch(event.request).catch(() => {
+        // Si falla la red, devolver la página offline
+        return caches.match(OFFLINE_PAGE);
+      });
+    })
+  );
+});
+
+// Permitir la sincronización en segundo plano
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-qr-scans') {
-    event.waitUntil(syncQRCodes()); // Define tu lógica aquí
+  if (event.tag === 'background-sync') {
+    event.waitUntil(
+      // Aquí puedes agregar la lógica que deseas ejecutar en segundo plano cuando se recupere la conexión
+      // Este es solo un ejemplo, puedes colocar cualquier tarea que desees sincronizar
+      fetch('/sync-endpoint').then((response) => {
+        return response.json();
+      }).then((data) => {
+        console.log('Sincronización en segundo plano exitosa:', data);
+      }).catch((error) => {
+        console.error('Error durante la sincronización:', error);
+      })
+    );
   }
 });
 
-async function syncQRCodes() {
-  console.log('[Service Worker] Sincronizando datos QR...');
-  // Implementa lógica para sincronizar datos QR
-}
-
-// ** Notificaciones Push **
-self.addEventListener('push', (event) => {
-  console.log('[Service Worker] Notificación push recibida');
-  const options = {
-    body: event.data ? event.data.text() : '¡Nueva notificación!',
-    icon: '/icons/qrcodescan_120401.png',
-    badge: '/icons/qrcodescan_120401.png',
-  };
-  event.waitUntil(self.registration.showNotification('QR Scanner App', options));
+// Enviar un mensaje para hacer que el Service Worker salte a la nueva versión
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
+
+// Preload de navegación (mejora la carga de la primera página)
+if (workbox.navigationPreload.isSupported()) {
+  workbox.navigationPreload.enable();
+}
