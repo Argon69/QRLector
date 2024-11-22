@@ -52,7 +52,10 @@ function showUpdateNotification() {
 }
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> ec7e492bc8ba42753ea079314a0692ac7cd880cc
 // Install Prompt Handler
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
