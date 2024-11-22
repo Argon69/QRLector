@@ -1,36 +1,34 @@
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js');
-
-const CACHE = "qr-scanner-cache-v1";
-const OFFLINE_PAGE = "offline.html"; // La página de fallback cuando el usuario está offline
+const CACHE_NAME = 'qr-scanner-cache-v1';
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icons/qrcodescan_120401.png',
-  '/icons/qrcodescan_120401.png',
   'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css',
   'https://unpkg.com/html5-qrcode',
 ];
 
-// Instalar el Service Worker y añadir los archivos a la caché
+// Instalar el Service Worker y cachear recursos iniciales
 self.addEventListener('install', (event) => {
+  console.log('[Service Worker] Instalando...');
   event.waitUntil(
-    caches.open(CACHE).then((cache) => {
-      return cache.addAll(urlsToCache).then(() => {
-        return cache.add(OFFLINE_PAGE); // Añadir la página offline a la caché
-      });
-    })
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('[Service Worker] Archivos cacheados');
+      return cache.addAll(urlsToCache);
+    }).catch((error) => console.error('[Service Worker] Error al cachear:', error))
   );
 });
 
-// Activar el Service Worker y gestionar la actualización de la caché
+// Activar y limpiar cachés antiguas
 self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE];
+  console.log('[Service Worker] Activando...');
+  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then((cacheNames) =>
       Promise.all(
         cacheNames.map((cacheName) => {
           if (!cacheWhitelist.includes(cacheName)) {
+            console.log('[Service Worker] Eliminando caché antigua:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -39,49 +37,55 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: Manejo de la red y la caché, fallback a la página offline si no hay conexión
+// Interceptar solicitudes
 self.addEventListener('fetch', (event) => {
+  console.log('[Service Worker] Interceptando fetch:', event.request.url);
   event.respondWith(
     caches.match(event.request).then((response) => {
-      // Si la solicitud está en caché, la devuelve
-      if (response) {
-        return response;
-      }
-      
-      // Si la solicitud no está en caché, intentar obtenerla de la red
-      return fetch(event.request).catch(() => {
-        // Si falla la red, devolver la página offline
-        return caches.match(OFFLINE_PAGE);
+      return response || fetch(event.request).catch((error) => {
+        console.error('[Service Worker] Error de red:', error);
+        // Retornar una respuesta predeterminada si es necesario
       });
     })
   );
 });
 
-// Permitir la sincronización en segundo plano
+// Sincronización de Fondo (Background Sync)
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'background-sync') {
-    event.waitUntil(
-      // Aquí puedes agregar la lógica que deseas ejecutar en segundo plano cuando se recupere la conexión
-      // Este es solo un ejemplo, puedes colocar cualquier tarea que desees sincronizar
-      fetch('/sync-endpoint').then((response) => {
-        return response.json();
-      }).then((data) => {
-        console.log('Sincronización en segundo plano exitosa:', data);
-      }).catch((error) => {
-        console.error('Error durante la sincronización:', error);
-      })
-    );
+  console.log('[Service Worker] Evento de sincronización:', event.tag);
+  if (event.tag === 'sync-qr-scans') {
+    event.waitUntil(syncPendingScans());
   }
 });
 
-// Enviar un mensaje para hacer que el Service Worker salte a la nueva versión
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
-    self.skipWaiting();
+// Función para manejar la sincronización de datos
+async function syncPendingScans() {
+  console.log('[Service Worker] Sincronizando datos QR pendientes...');
+  try {
+    const pendingScans = await getPendingScans(); // Obtener datos pendientes
+    for (const scan of pendingScans) {
+      await sendScanToServer(scan); // Enviar cada dato al servidor
+    }
+    console.log('[Service Worker] Datos sincronizados con éxito');
+  } catch (error) {
+    console.error('[Service Worker] Error al sincronizar datos:', error);
   }
-});
+}
 
-// Preload de navegación (mejora la carga de la primera página)
-if (workbox.navigationPreload.isSupported()) {
-  workbox.navigationPreload.enable();
+// Funciones auxiliares (deben implementarse según tu lógica)
+async function getPendingScans() {
+  // Lógica para recuperar datos pendientes desde IndexedDB u otro almacenamiento local
+  return []; // Ejemplo: devuelve una lista vacía
+}
+
+async function sendScanToServer(scan) {
+  // Lógica para enviar un dato al servidor mediante fetch o una API
+  console.log('[Service Worker] Enviando dato:', scan);
+  return fetch('/api/sync', {
+    method: 'POST',
+    body: JSON.stringify(scan),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 }

@@ -2,7 +2,7 @@
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
         try {
-            const registration = await navigator.serviceWorker.register('/sw.js', '/pwabuilder-sw.js', {
+            const registration = await navigator.serviceWorker.register('/sw.js', {
                 scope: '/'
             });
             console.log('ServiceWorker registrado exitosamente con alcance:', registration.scope);
