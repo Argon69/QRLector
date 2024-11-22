@@ -1,26 +1,57 @@
- // Service Worker Registration
- if ('serviceWorker' in navigator) {
+// Registro del Service Worker
+if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
         try {
             const registration = await navigator.serviceWorker.register('/sw.js', {
                 scope: '/'
             });
-            console.log('ServiceWorker registration successful with scope:', registration.scope);
-            
+            console.log('ServiceWorker registrado exitosamente con alcance:', registration.scope);
+
+            // Detectar si hay una actualización disponible
             registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;
+                console.log('ServiceWorker: Nueva versión encontrada.');
+                
                 newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // New content is available, show update notification
+                        console.log('ServiceWorker: Nuevo contenido disponible.');
+                        // Notificar al usuario sobre la nueva versión
                         showUpdateNotification();
                     }
                 });
             });
         } catch (error) {
-            console.error('ServiceWorker registration failed:', error);
+            console.error('ServiceWorker: Error al registrar:', error);
         }
     });
 }
+
+// Función para mostrar notificaciones al usuario sobre actualizaciones
+function showUpdateNotification() {
+    const updateBanner = document.createElement('div');
+    updateBanner.textContent = 'Nueva versión disponible. Actualiza para ver los cambios.';
+    updateBanner.style.position = 'fixed';
+    updateBanner.style.bottom = '0';
+    updateBanner.style.width = '100%';
+    updateBanner.style.backgroundColor = '#4F46E5';
+    updateBanner.style.color = '#FFFFFF';
+    updateBanner.style.padding = '10px';
+    updateBanner.style.textAlign = 'center';
+    updateBanner.style.cursor = 'pointer';
+    updateBanner.style.zIndex = '1000';
+
+    updateBanner.addEventListener('click', () => {
+        updateBanner.remove();
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ action: 'skipWaiting' });
+            window.location.reload();
+        }
+    });
+
+    document.body.appendChild(updateBanner);
+}
+
+
 
 // Install Prompt Handler
 let deferredPrompt;
